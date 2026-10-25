@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>番茄钟 · 专注计时</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='37' r='22' fill='%23ff6b5e'/><path d='M32 15c2 5 6 8 11 7-1 5-6 9-11 9s-10-4-11-9c5 1 9-2 11-7z' fill='%234ade9b'/></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="scrim" id="scrim" hidden></div>
+
+    <!-- ============ 侧栏 ============ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64">
+            <circle cx="32" cy="37" r="22" fill="#ff6b5e" />
+            <circle cx="24" cy="30" r="6" fill="#fff" opacity=".2" />
+            <path d="M32 15c2 5 6 8 11 7-1 5-6 9-11 9s-10-4-11-9c5 1 9-2 11-7z" fill="#4ade9b" />
+            <path d="M32 21v-6" stroke="#4ade9b" stroke-width="3" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>番茄钟</h1>
+          <p>专注 · 记录 · 复盘</p>
+        </div>
+        <button class="icon-btn only-mobile" id="closeSidebar" aria-label="关闭侧栏">✕</button>
+      </div>
+
+      <div class="side-block">
+        <div class="side-head">
+          <span>任务</span>
+          <button class="icon-btn" id="addTaskBtn" title="新建任务" aria-label="新建任务">＋</button>
+        </div>
+        <ul class="task-list" id="taskList"></ul>
+        <button class="add-task" id="newTaskBtn"><span>＋</span> 新建任务</button>
+      </div>
+
+      <div class="side-foot">
+        <div class="goal-card">
+          <div class="goal-top"><span>今日目标</span><span id="goalText">0 / 120 分钟</span></div>
+          <div class="goal-bar"><i id="goalBar"></i></div>
+          <div class="goal-meta"><span id="streakText">连续 0 天</span><span id="goalPct">0%</span></div>
+        </div>
+        <div class="side-actions">
+          <button class="btn btn-soft" id="settingsBtn">设置</button>
+          <button class="btn btn-soft" id="exportBtn">导出</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============ 主区域 ============ -->
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-btn only-mobile" id="menuBtn" aria-label="打开侧栏">☰</button>
+        <div class="seg seg-tabs" id="viewTabs" role="tablist" aria-label="视图">
+          <button class="tab is-active" data-view="timer" role="tab" aria-selected="true">计时</button>
+          <button class="tab" data-view="stats" role="tab" aria-selected="false">统计</button>
+        </div>
+        <div class="topbar-right">
+          <div class="today-chip" id="todayChip">
+            <span class="pulse-dot" aria-hidden="true"></span>
+            <span id="todayChipText">今日 0 分钟</span>
+          </div>
+          <button class="icon-btn" id="themeBtn" title="切换主题" aria-label="切换主题">☾</button>
+        </div>
+      </header>
+
+      <main class="views">
+        <!-- ---------- 计时 ---------- -->
+        <section class="view is-active" id="viewTimer" role="tabpanel" aria-label="计时">
+          <div class="timer-shell">
+            <div class="seg seg-lg" id="timingSeg" role="group" aria-label="计时方式">
+              <button data-timing="countdown" class="is-active">倒计时</button>
+              <button data-timing="countup">正向计时</button>
+            </div>
+
+            <div class="dial-wrap phase-focus" id="dialWrap">
+              <svg class="dial" viewBox="0 0 360 360" aria-hidden="true">
+                <circle class="dial-halo" cx="180" cy="180" r="150" />
+                <g id="dialTicks"></g>
+                <circle class="dial-track" cx="180" cy="180" r="138" />
+                <circle class="dial-progress" id="dialProgress" cx="180" cy="180" r="138" role="progressbar" aria-label="计时进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" />
+              </svg>
+              <div class="dial-center">
+                <div class="phase-pill" id="phasePill">专注</div>
+                <div class="clock" id="clock" role="timer" aria-live="off">25:00</div>
+                <div class="clock-sub" id="clockSub">第 1 轮 · 每 4 轮长休</div>
+                <div class="round-dots" id="roundDots" aria-label="番茄轮次"></div>
+              </div>
+            </div>
+
+            <div class="preset-row" id="presets"></div>
+
+            <div class="task-line">
+              <span class="task-line-label">当前任务</span>
+              <div class="select-wrap">
+                <span class="dot" id="currentTaskDot"></span>
+                <span class="select-value" id="taskSelectValue">工作</span>
+                <svg class="select-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+                <select id="taskSelect" aria-label="选择任务"></select>
+              </div>
+            </div>
+
+            <div class="controls">
+              <button class="btn btn-ghost" id="resetBtn" title="重置（R）">重置</button>
+              <button class="btn btn-primary btn-xl" id="toggleBtn" title="开始 / 暂停（空格）">开始</button>
+              <button class="btn btn-ghost" id="skipBtn" title="跳过（S）">跳过</button>
+            </div>
+            <div class="hint">空格 开始/暂停 · R 重置 · S 跳过 · 1/2 切换模式</div>
+
+            <div class="recent-card">
+              <div class="card-head">
+                <h3>今日记录</h3>
+                <button class="link-btn" data-goto-stats>查看统计 →</button>
+              </div>
+              <ul class="recent-list" id="recentList"></ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- 统计 ---------- -->
+        <section class="view" id="viewStats" role="tabpanel" aria-label="统计">
+          <div class="stats-wrap">
+            <div class="stats-head">
+              <div>
+                <h2>专注统计</h2>
+                <p class="muted small" id="rangeLabel"></p>
+              </div>
+              <div class="seg" id="rangeSeg" role="group" aria-label="时间范围">
+                <button data-range="today">今日</button>
+                <button data-range="week" class="is-active">本周</button>
+                <button data-range="month">本月</button>
+                <button data-range="all">全部</button>
+              </div>
+            </div>
+
+            <div id="statsEmpty"></div>
+            <div class="kpis" id="kpis"></div>
+
+            <div class="stats-grid">
+              <section class="card">
+                <div class="card-head">
+                  <h3>近 14 天专注</h3>
+                  <span class="legend-inline"><i class="legend-line"></i>每日目标</span>
+                </div>
+                <div class="chart" id="barChart"></div>
+              </section>
+
+              <section class="card">
+                <div class="card-head"><h3>任务分布</h3></div>
+                <div class="chart" id="donutChart"></div>
+              </section>
+
+              <section class="card span-2">
+                <div class="card-head">
+                  <h3>高效时段</h3>
+                  <span class="muted small">近 4 周 · 工作日 × 小时的平均专注</span>
+                </div>
+                <div class="chart" id="heatmap"></div>
+              </section>
+
+              <section class="card span-2">
+                <div class="card-head"><h3>洞察</h3></div>
+                <div class="insights" id="insights"></div>
+              </section>
+
+              <section class="card span-2">
+                <div class="card-head">
+                  <h3>记录明细</h3>
+                  <div class="card-actions">
+                    <div class="select-wrap select-sm">
+                      <span class="select-value" id="recFilterValue">全部任务</span>
+                      <svg class="select-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+                      <select id="recFilter" aria-label="按任务筛选">
+                        <option value="all">全部任务</option>
+                      </select>
+                    </div>
+                    <button class="btn btn-soft btn-xs" id="exportCsvBtn">导出 CSV</button>
+                  </div>
+                </div>
+                <ul class="rec-list" id="recList"></ul>
+              </section>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ 设置弹窗 ============ -->
+  <dialog class="dlg" id="dlgSettings">
+    <form method="dialog" class="dlg-body" id="settingsForm">
+      <header class="dlg-head">
+        <h2>设置</h2>
+        <button class="icon-btn" value="cancel" aria-label="关闭">✕</button>
+      </header>
+      <div class="dlg-scroll">
+        <section class="field-group">
+          <h3>计时</h3>
+          <label class="field"><span>专注时长（分钟）</span><input type="number" id="setFocusMin" min="1" max="180" step="1" /></label>
+          <label class="field"><span>短休息（分钟）</span><input type="number" id="setShortMin" min="1" max="60" step="1" /></label>
+          <label class="field"><span>长休息（分钟）</span><input type="number" id="setLongMin" min="1" max="120" step="1" /></label>
+          <label class="field"><span>每几轮进入长休息</span><input type="number" id="setLongEvery" min="2" max="10" step="1" /></label>
+        </section>
+
+        <section class="field-group">
+          <h3>目标与提醒</h3>
+          <label class="field"><span>每日目标（分钟）</span><input type="number" id="setDailyGoal" min="10" max="960" step="10" /></label>
+          <label class="switch"><input type="checkbox" id="setSound" /><span class="track"><i></i></span><span>结束提示音</span></label>
+          <label class="switch"><input type="checkbox" id="setNotify" /><span class="track"><i></i></span><span>系统通知</span></label>
+          <label class="switch"><input type="checkbox" id="setAutoBreak" /><span class="track"><i></i></span><span>专注结束后自动开始休息</span></label>
+          <label class="switch"><input type="checkbox" id="setAutoFocus" /><span class="track"><i></i></span><span>休息结束后自动开始专注</span></label>
+        </section>
+
+        <section class="field-group">
+          <h3>数据</h3>
+          <p class="muted small" id="dataSummary">—</p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-soft" id="exportJsonBtn">导出 JSON</button>
+            <button type="button" class="btn btn-soft" id="exportCsvBtn2">导出 CSV</button>
+            <button type="button" class="btn btn-soft" id="importBtn">导入 JSON</button>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn btn-soft danger" id="clearDataBtn">清空全部数据</button>
+          </div>
+          <input type="file" id="importFile" accept="application/json,.json" hidden />
+        </section>
+      </div>
+      <footer class="dlg-foot">
+        <button class="btn btn-ghost" value="cancel">取消</button>
+        <button class="btn btn-primary" value="save" id="saveSettingsBtn">保存</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ============ 任务弹窗 ============ -->
+  <dialog class="dlg dlg-sm" id="dlgTask">
+    <form method="dialog" class="dlg-body" id="taskForm">
+      <header class="dlg-head">
+        <h2 id="taskDlgTitle">新建任务</h2>
+        <button class="icon-btn" value="cancel" aria-label="关闭">✕</button>
+      </header>
+      <div class="dlg-scroll">
+        <label class="field field-col"><span>任务名称</span><input id="taskName" maxlength="24" placeholder="例如：写论文" autocomplete="off" /></label>
+        <div class="field field-col">
+          <span>颜色</span>
+          <div class="swatches" id="swatches"></div>
+        </div>
+        <button type="button" class="btn btn-soft danger" id="deleteTaskBtn">删除任务</button>
+      </div>
+      <footer class="dlg-foot">
+        <button class="btn btn-ghost" value="cancel">取消</button>
+        <button class="btn btn-primary" value="save">保存</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ============ 确认弹窗 ============ -->
+  <dialog class="dlg dlg-sm" id="dlgConfirm">
+    <div class="dlg-body">
+      <header class="dlg-head"><h2 id="confirmTitle">确认</h2></header>
+      <p class="confirm-msg" id="confirmMsg"></p>
+      <footer class="dlg-foot">
+        <button class="btn btn-ghost" id="confirmNo">取消</button>
+        <button class="btn btn-primary" id="confirmYes">确定</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <span class="sr-only" id="liveRegion" aria-live="polite"></span>
+
+  <script src="app.js"></script>
+</body>
+</html>
